@@ -10,11 +10,6 @@ module.exports = (sequelize) => {
     name: {
         type: DataTypes.STRING,
         allowNull: false,
-    },
-    usersId: {
-      type: DataTypes.ARRAY(DataTypes.JSON),
-      allowNull: true,
-      defaultValue: [],
     }
   });
 };

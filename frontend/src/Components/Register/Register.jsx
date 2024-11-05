@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Register = () => {
-  const [emailDomain, setEmailDomain] = useState('@hotmail.com');
+  const [emailDomain, setEmailDomain] = React.useState('@hotmail.com');
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -58,7 +58,7 @@ const Register = () => {
               <input
                 type="text"
                 id="email"
-                placeholder="usuario"
+                placeholder="your-email"
                 className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border border-gray-300 rounded-l-md focus:ring-blue-500 focus:border-blue-500"
                 required
               />
