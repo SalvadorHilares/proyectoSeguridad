@@ -28,5 +28,9 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    privateKey: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
   });
 };

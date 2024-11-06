@@ -1,19 +1,24 @@
 const { DataTypes } = require("sequelize");
 
 module.exports = (sequelize) => {
-  sequelize.define("group", {
+  sequelize.define("user", {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
     name: {
-        type: DataTypes.STRING,
-        allowNull: false,
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    accept: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
     groupKey: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
   });
 };

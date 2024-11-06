@@ -1,8 +1,9 @@
+const crypto = require('crypto');
 const User = require('../db.js');
 
 const register = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { name, lastName, email, password } = req.body;
 
         // Check if the user already exists
         const user = await User
@@ -12,8 +13,20 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
+        const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+            modulusLength: 4096,
+            publicKeyEncoding: {
+                type: 'spki',
+                format: 'pem'
+            },
+            privateKeyEncoding: {
+                type: 'pkcs8',
+                format: 'pem'
+            }
+        });
+
         // Create the user
-        const newUser = await User.create({ email, password });
+        const newUser = await User.create({ name, lastName, email, password, publicKey, privateKey });
 
         // Generate token
         const token = newUser.generateToken();
