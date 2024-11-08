@@ -1,45 +1,58 @@
-import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
-const User = require('../db.js');
+const { MailerSend, EmailParams, Sender, Recipient } = require("mailersend");
+const { User, Notification, Group } = require('../db.js');
 const crypto = require('crypto');
 
 const mailerSend = new MailerSend({
     apiKey: process.env.API_KEY,
 });
 
-const sendEmail = async (req, res) => {
+const sendEmail = async (admin, user, nameNotification, keyGroup) => {
     try {
-      const sentFrom = new Sender("you@yourdomain.com", "Your name");
+      const sentFrom = new Sender(admin.email, admin.name + " " + admin.lastname);
 
       const recipients = [
-          new Recipient("your@client.com", "Your Client")
+          new Recipient(user.email, user.name + " " + user.lastname)
         ];
+
+        await Notification.create({
+          userId: user.id,
+          name: "Invitación al Grupo " + nameNotification,
+          groupKey: keyGroup,
+        });
         
         const emailParams = new EmailParams()
           .setFrom(sentFrom)
           .setTo(recipients)
           .setReplyTo(sentFrom)
-          .setSubject("This is a Subject")
-          .setHtml("<strong>This is the HTML content</strong>")
-          .setText("This is the text content");
+          .setSubject("Invitación al Grupo " + nameNotification)
+          .setHtml(`<strong>Your encrypted group key is:</strong> <br> ${keyGroup}`)
+          .setText(`Your encrypted group key is: ${keyGroup}`);
         
         await mailerSend.email.send(emailParams);
+        console.log("Email sent successfully");
     } catch (error) {
       console.error("This error cause by: ",error.message);
-      res.status(500).json({ message: error.message });
+      throw new Error("Error sending email");
     }
 };
 
 const sendKeyGroup = async (req, res) => {
-    const {adminEmail, usersEmail} = req.body
+    // El nameNotification es el nombre parcial del nombre del grupo que se creará
+    const {adminEmail, usersEmail, nameNotification} = req.body
 
     const groupKey = crypto.generateKey('aes', {
         length: 256
     });
 
+    await Group.create({
+      name: nameNotification,
+      groupKey: groupKey
+    });
+
     const admin = await User.findOne({ email: adminEmail });
     
     usersEmail.forEach(async (email) => {
-      const user = await User.findOne({ email});
+      const user = await User.findOne({ email: email});
       if (!user) {
           return res.status(404).json({ message: 'User not found' });
       }
@@ -59,9 +72,13 @@ const sendKeyGroup = async (req, res) => {
           key: admin.privateKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
         },
-        Buffer.from(groupKey)
+        Buffer.from(cifrateGroupKeyWithPublicKey)
       );
 
-      sendEmail(cifrateGroupKeyWithPublicKey, cifrateGroupKeyWithPrivateKeyAdmin);
+      sendEmail(admin, user, nameNotification, cifrateGroupKeyWithPrivateKeyAdmin.toString('hex'));
     });
+};
+
+module.exports = {
+    sendKeyGroup
 };
