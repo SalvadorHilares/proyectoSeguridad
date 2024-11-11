@@ -12,7 +12,7 @@ module.exports = (sequelize) => {
         allowNull: false,
     },
     groupKey: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
   });

@@ -1,7 +1,8 @@
 const { DataTypes } = require("sequelize");
+const jwt = require("jsonwebtoken");
 
 module.exports = (sequelize) => {
-  sequelize.define("user", {
+  const User = sequelize.define("user", {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -12,8 +13,8 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
     lastName: {
-        type: DataTypes.STRING,
-        allowNull: false,
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     email: {
       type: DataTypes.STRING,
@@ -25,12 +26,20 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
     publicKey: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     privateKey: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
   });
+
+  // Agrega el método de instancia generateToken
+  User.prototype.generateToken = function () {
+    const payload = { id: this.id, email: this.email }; // Información que quieras incluir en el token
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" }); // Genera el token
+  };
+
+  return User;
 };

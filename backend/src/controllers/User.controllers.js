@@ -1,13 +1,12 @@
 const crypto = require('crypto');
-const User = require('../db.js');
+const { User } = require('../db.js');
 
 const register = async (req, res) => {
     try {
         const { name, lastName, email, password } = req.body;
 
         // Check if the user already exists
-        const user = await User
-            .findOne({ where: { email } });
+        const user = await User.findOne({ where: { email : email } });
 
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
@@ -43,7 +42,7 @@ const login = async (req, res) => {
         const { email, password } = req.body;
 
         // Check if the user already exists
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: email });
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });

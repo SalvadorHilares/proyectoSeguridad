@@ -17,7 +17,7 @@ module.exports = (sequelize) => {
       defaultValue: false,
     },
     groupKey: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
   });
