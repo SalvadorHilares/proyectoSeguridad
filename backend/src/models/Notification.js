@@ -12,9 +12,9 @@ module.exports = (sequelize) => {
       allowNull: false,
     },
     accept: {
-      type: DataTypes.BOOLEAN,
+      type: DataTypes.ENUM("ACEPTADO", "ESPERA", "RECHAZADO"),
       allowNull: false,
-      defaultValue: false,
+      defaultValue: "ESPERA",
     },
     groupKey: {
       type: DataTypes.TEXT,
