@@ -38,49 +38,54 @@ const sendEmail = async (admin, user, nameNotification, keyGroup) => {
 };
 
 const sendKeyGroup = async (req, res) => {
-    const { adminEmail, usersEmail, nameNotification } = req.body;
+    try {
+      const { adminEmail, usersEmail, nameNotification } = req.body;
 
-    // Genera una clave de 256 bits para el grupo
-    const groupKey = crypto.randomBytes(32).toString('hex');
+      // Genera una clave de 256 bits para el grupo
+      const groupKey = crypto.randomBytes(32).toString('hex');
 
-    /*
-    await Group.create({
+      /*
+      await Group.create({
         name: nameNotification,
         groupKey: groupKey,
-    });*/
+      });*/
 
-    const admin = await User.findOne({ where: { email: adminEmail } });
-    if (!admin) {
+      const admin = await User.findOne({ where: { email: adminEmail } });
+      if (!admin) {
         return res.status(404).json({ message: 'Admin user not found' });
-    }
+      }
 
-    for (const emailObj of usersEmail) {
+      for (const emailObj of usersEmail) {
         const user = await User.findOne({ where: { email: emailObj.email } });
         if (!user) {
-            console.error(`User ${emailObj.email} not found`);
-            continue;
+          console.error(`User ${emailObj.email} not found`);
+          continue;
         }
 
         // Cifra la clave del grupo con la clave pública del usuario y con sha256
         const encryptedGroupKey = crypto.publicEncrypt(
-            {
-                key: user.publicKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-                oaepHash: "sha256",
-            },
-            Buffer.from(groupKey)
+          {
+            key: user.publicKey,
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+            oaepHash: "sha256",
+          },
+          Buffer.from(groupKey)
         );
 
         // Envía el correo al usuario
         await sendEmail(
-            admin,
-            user,
-            nameNotification,
-            encryptedGroupKey.toString('hex')
+          admin,
+          user,
+          nameNotification,
+          encryptedGroupKey.toString('hex')
         );
-    }
+      }
 
-    res.status(200).json({ message: 'Group key sent to all users' });
+      res.status(200).json({ message: 'Group key sent to all users' });
+    } catch (error) {
+      console.error("Error sending group key:", error.message);
+      res.status(500).json({ message: 'Internal server error' });
+    }
 };
 
 const desecryptKeyGroup = async (req, res) => {
