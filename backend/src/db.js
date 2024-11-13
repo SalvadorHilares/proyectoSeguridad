@@ -50,6 +50,11 @@ Group.belongsToMany(User, { through: "user_group" });
 Notification.belongsTo(User);
 User.hasMany(Notification);
 
+// Una notificación pertenece a un admin y un admin puede tener muchas notificaciones
+
+Notification.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
+User.hasMany(Notification, { foreignKey: 'adminId' });
+
 module.exports = {
   ...sequelize.models, // para poder importar los modelos así: const { Product, User } = require('./db.js');
   conn: sequelize, // para importart la conexión { conn } = require('./db.js');

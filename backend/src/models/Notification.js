@@ -20,5 +20,9 @@ module.exports = (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    adminSignature: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   });
 };

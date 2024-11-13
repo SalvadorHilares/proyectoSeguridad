@@ -3,31 +3,24 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com", // Servidor SMTP de MailerSend
-  port: 465, // Usa el puerto 587 para TLS o 465 para SSL
-  secure: true, // True si usas SSL, falso si usas TLS
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
-    user: "shilaresbarrios@gmail.com", // Reemplaza con tu usuario SMTP
-    pass: process.env.EMAIL_PASSWORD // Reemplaza con tu contraseña SMTP
+    user: "shilaresbarrios@gmail.com",
+    pass: process.env.EMAIL_PASSWORD
   }
 });
 
-const sendEmail = async (admin, user, nameNotification, keyGroup) => {
+const sendEmail = async ({ from, to, subject, text, html }) => {
   try {
     const mailOptions = {
-      from: `"${admin.name} ${admin.lastname}" <${admin.email}>`, // Nombre y correo del remitente
-      to: `${user.name} ${user.lastname} <${user.email}>`, // Nombre y correo del destinatario
-      subject: `Invitación al Grupo ${nameNotification}`,
-      text: `Your encrypted group key is: ${keyGroup}`,
-      html: `<strong>Your encrypted group key is:</strong> <br> ${keyGroup}`
+      from: `"${from.name} ${from.lastName}" <${from.email}>`,
+      to: `"${to.name} ${to.lastName}" <${to.email}>`,
+      subject,
+      text,
+      html
     };
-
-    /*
-    await Notification.create({
-        userId: user.id,
-        name: `Invitación al Grupo ${nameNotification}`,
-        groupKey: keyGroup,
-    });*/ 
 
     const info = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully:", info.messageId);
@@ -37,98 +30,172 @@ const sendEmail = async (admin, user, nameNotification, keyGroup) => {
   }
 };
 
-const sendKeyGroup = async (req, res) => {
-    try {
-      const { adminEmail, usersEmail, nameNotification } = req.body;
+// Envía invitaciones a los usuarios para unirse a un grupo
+const sendGroupInvitationEmail = async (admin, user, nameNotification, notificationId) => {
+  const subject = `Invitación al Grupo ${nameNotification}`;
+  const text = `You have been invited to join the group ${nameNotification}. Please accept or decline the invitation.`;
+  const html = `
+    <p>You have been invited to join the group <strong>${nameNotification}</strong>.</p>
+    <p><a href="http://localhost:3000/group/${notificationId}">Click here to accept or decline the invitation</a></p>
+  `;
 
-      // Genera una clave de 256 bits para el grupo
-      const groupKey = crypto.randomBytes(32).toString('hex');
-
-      /*
-      await Group.create({
-        name: nameNotification,
-        groupKey: groupKey,
-      });*/
-
-      const admin = await User.findOne({ where: { email: adminEmail } });
-      if (!admin) {
-        return res.status(404).json({ message: 'Admin user not found' });
-      }
-
-      for (const emailObj of usersEmail) {
-        const user = await User.findOne({ where: { email: emailObj.email } });
-        if (!user) {
-          console.error(`User ${emailObj.email} not found`);
-          continue;
-        }
-
-        // Cifra la clave del grupo con la clave pública del usuario y con sha256
-        const encryptedGroupKey = crypto.publicEncrypt(
-          {
-            key: user.publicKey,
-            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-            oaepHash: "sha256",
-          },
-          Buffer.from(groupKey)
-        );
-
-        // Envía el correo al usuario
-        await sendEmail(
-          admin,
-          user,
-          nameNotification,
-          encryptedGroupKey.toString('hex')
-        );
-      }
-
-      res.status(200).json({ message: 'Group key sent to all users' });
-    } catch (error) {
-      console.error("Error sending group key:", error.message);
-      res.status(500).json({ message: 'Internal server error' });
-    }
+  await sendEmail({
+    from: admin,
+    to: user,
+    subject,
+    text,
+    html
+  });
 };
 
-const desecryptKeyGroup = async (req, res) => {
-    try {
-      const { userId, groupKey, isAccept } = req.body;
+// Envía un correo encriptado al aceptar la invitación
+const sendAcceptanceConfirmationEmail = async (admin, user, groupName) => {
+  const message = `El usuario ${user.name} aceptó la invitación al grupo ${groupName}.`;
 
-      if (!isAccept) {
-        await Notification.update({ accept: "RECHAZADO" }, { where: { userId: userId, groupKey: groupKey } });
-        return res.status(400).json({ message: 'User did not accept the invitation' });
-      }
+  // Cifra el mensaje con la clave pública del administrador
+  const encryptedMessage = crypto.publicEncrypt(
+    {
+      key: admin.publicKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: "sha256"
+    },
+    Buffer.from(message)
+  );
 
-      const user = await User.findByPk(userId);
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
+  const subject = `Confirmación de Aceptación - Grupo ${groupName}`;
+  const text = `The acceptance confirmation message is: ${encryptedMessage.toString('hex')}`;
+  const html = `<strong>The acceptance confirmation message is:</strong> <br> ${encryptedMessage.toString('hex')}`;
 
-      const group = await Group.findOne({ where: { groupKey: groupKey } });
+  await sendEmail({
+    from: { name: user.name, lastName: user.lastName, email: user.email },
+    to: admin,
+    subject,
+    text,
+    html
+  });
+};
 
-      // Descifra la clave del grupo con la clave privada del usuario
-      const decryptedGroupKey = crypto.privateDecrypt(
-        {
-          key: user.privateKey,
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: "sha256",
-        },
-        Buffer.from(groupKey, 'hex')
-      );
+// Función para enviar la clave del grupo
+const sendKeyGroup = async (req, res) => {
+  try {
+    const { adminEmail, usersEmail, nameNotification } = req.body;
 
-      if (decryptedGroupKey.toString() !== group.groupKey) {
-        return res.status(400).json({ message: 'Invalid group key' });
-      }
-
-      await user.addGroups(group);
-      await Notification.update({ accept: "ACEPTADO" }, { where: { userId: userId, groupKey: groupKey } });
-
-      res.status(200).json({ message: 'Invitation accepted' });
-    } catch (error) {
-      console.error("Error decrypting group key:", error.message);
-      res.status(500).json({ message: 'Internal server error' });
+    const admin = await User.findOne({ where: { email: adminEmail } });
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin user not found' });
     }
+
+    const groupKey = crypto.randomBytes(32).toString('hex');
+    const adminSignature = crypto.sign("sha256", Buffer.from(groupKey), {
+      key: admin.privateKey,
+      padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+    });
+
+    await Group.create({
+      name: nameNotification,
+      groupKey: groupKey,
+    });
+
+    for (const emailObj of usersEmail) {
+      const user = await User.findOne({ where: { email: emailObj.email } });
+      if (!user) {
+        console.error(`User ${emailObj.email} not found`);
+        continue;
+      }
+
+      const notification = await Notification.create({
+        adminId: admin.id,
+        userId: user.id,
+        name: `Invitación al Grupo ${nameNotification}`,
+        groupKey: groupKey,
+        adminSignature: adminSignature.toString('hex')
+      });
+
+      await sendGroupInvitationEmail(admin, user, nameNotification, notification.id);
+    }
+
+    res.status(200).json({ message: 'Group key sent to all users' });
+  } catch (error) {
+    console.error("Error sending group key:", error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Procesa la aceptación de la invitación por parte del usuario
+const desecryptKeyGroup = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const { userId, isAccept } = req.body;
+
+    if (!isAccept) {
+      await Notification.update(
+        { accept: "RECHAZADO" },
+        { where: { id: notificationId, userId: userId } }
+      );
+      return res.status(400).json({ message: 'User did not accept the invitation' });
+    }
+
+    const notification = await Notification.findOne({
+      where: { id: notificationId, userId: userId },
+      include: [{ model: User, as: 'admin', attributes: ['publicKey'] }]
+    });
+
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    const { groupKey, adminSignature, admin } = notification;
+
+    const isVerified = crypto.verify(
+      "sha256",
+      Buffer.from(groupKey, 'hex'),
+      {
+        key: admin.publicKey,
+        padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+      },
+      Buffer.from(adminSignature, 'hex')
+    );
+
+    if (!isVerified) {
+      return res.status(400).json({ message: 'Invalid admin signature' });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const decryptedGroupKey = crypto.privateDecrypt(
+      {
+        key: user.privateKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: "sha256",
+      },
+      Buffer.from(groupKey, 'hex')
+    );
+
+    const group = await Group.findOne({ where: { groupKey: decryptedGroupKey.toString('hex') } });
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    await user.addGroups(group);
+
+    await Notification.update(
+      { accept: "ACEPTADO" },
+      { where: { id: notificationId, userId: userId } }
+    );
+
+    await sendAcceptanceConfirmationEmail(admin, user, group.name);
+
+    res.status(200).json({ message: 'Invitation accepted' });
+  } catch (error) {
+    console.error("Error decrypting group key:", error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };
 
 module.exports = {
-    sendKeyGroup,
-    desecryptKeyGroup,
+  sendKeyGroup,
+  desecryptKeyGroup,
 };

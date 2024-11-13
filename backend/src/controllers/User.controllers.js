@@ -65,6 +65,14 @@ const login = async (req, res) => {
     }
 };
 
+const sendEmailToGroup = async (req, res) => {
+    const { userId, email} = req.body;
+};
+
+const recieveEmailFromGroup = async (req, res) => {
+    const { userId, email} = req.body;
+};
+
 module.exports = { 
     login,
     register
