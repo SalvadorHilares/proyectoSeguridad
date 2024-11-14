@@ -86,10 +86,6 @@ const sendKeyGroup = async (req, res) => {
     }
 
     const groupKey = crypto.randomBytes(32).toString('hex');
-    const adminSignature = crypto.sign("sha256", Buffer.from(groupKey), {
-      key: admin.privateKey,
-      padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-    });
 
     await Group.create({
       name: nameNotification,
@@ -103,12 +99,26 @@ const sendKeyGroup = async (req, res) => {
         continue;
       }
 
+      const encryptedGroupKey = crypto.publicEncrypt(
+        {
+          key: user.publicKey,
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          oaepHash: "sha256",
+        },
+        Buffer.from(groupKey)
+      );
+
+      const adminSignature = crypto.sign("sha256", Buffer.from(encryptedGroupKey), {
+        key: admin.privateKey,
+        padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+      });
+
       const notification = await Notification.create({
         adminId: admin.id,
         userId: user.id,
         name: `Invitación al Grupo ${nameNotification}`,
-        groupKey: groupKey,
-        adminSignature: adminSignature.toString('hex')
+        groupKey: encryptedGroupKey.toString('hex'),
+        adminSignature: adminSignature.toString('hex'),
       });
 
       await sendGroupInvitationEmail(admin, user, nameNotification, notification.id);
@@ -137,7 +147,7 @@ const desecryptKeyGroup = async (req, res) => {
 
     const notification = await Notification.findOne({
       where: { id: notificationId, userId: userId },
-      include: [{ model: User, as: 'admin', attributes: ['publicKey'] }]
+      include: [{ model: User, as: 'admin' , attributes: ['publicKey'] }]
     });
 
     if (!notification) {
@@ -174,7 +184,7 @@ const desecryptKeyGroup = async (req, res) => {
       Buffer.from(groupKey, 'hex')
     );
 
-    const group = await Group.findOne({ where: { groupKey: decryptedGroupKey.toString('hex') } });
+    const group = await Group.findOne({ where: { groupKey: decryptedGroupKey } });
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
