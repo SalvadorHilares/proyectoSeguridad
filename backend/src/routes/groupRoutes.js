@@ -4,6 +4,6 @@ const router = Router();
 const { sendKeyGroup, desecryptKeyGroup } = require('../controllers/Group.controllers');
 
 router.post('/sendKeyGroup', sendKeyGroup);
-router.post('/desecryptKeyGroup/:notificationId', desecryptKeyGroup);
+router.post('/desecryptKeyGroup', desecryptKeyGroup);
 
 module.exports = router;

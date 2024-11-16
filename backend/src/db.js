@@ -37,7 +37,7 @@ sequelize.models = Object.fromEntries(capsEntries);
 
 // En sequelize.models están todos los modelos importados como propiedades
 // Para relacionarlos hacemos un destructuring
-const { Group, User, Notification } = sequelize.models;
+const { Group, User, Notification, Message } = sequelize.models;
 // Aca vendrian las relaciones
 
 // Un User puede pertenecer a muchos grupos y un grupo puede tener muchos usuarios
@@ -54,6 +54,14 @@ User.hasMany(Notification);
 
 Notification.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
 User.hasMany(Notification, { foreignKey: 'adminId' });
+
+// Un mensaje pertenece a un usuario y un usuario puede tener muchos mensajes
+
+Message.belongsTo(User, {foreignKey: 'senderId', as: 'sender'});
+User.hasMany(Message, {foreignKey: 'senderId'});
+
+Message.belongsTo(User, {foreignKey: 'receiverId', as: 'receiver'});
+User.hasMany(Message, {foreignKey: 'receiverId'});
 
 module.exports = {
   ...sequelize.models, // para poder importar los modelos así: const { Product, User } = require('./db.js');

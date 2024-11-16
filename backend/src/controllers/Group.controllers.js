@@ -1,34 +1,6 @@
 const { User, Notification, Group } = require('../db.js');
-const nodemailer = require('nodemailer');
+const { sendEmail } = require('../utils/email.service.js');
 const crypto = require('crypto');
-
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: "shilaresbarrios@gmail.com",
-    pass: process.env.EMAIL_PASSWORD
-  }
-});
-
-const sendEmail = async ({ from, to, subject, text, html }) => {
-  try {
-    const mailOptions = {
-      from: `"${from.name} ${from.lastName}" <${from.email}>`,
-      to: `"${to.name} ${to.lastName}" <${to.email}>`,
-      subject,
-      text,
-      html
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully:", info.messageId);
-  } catch (error) {
-    console.error("Error sending email:", error.message);
-    throw new Error("Error sending email via SMTP");
-  }
-};
 
 // Envía invitaciones a los usuarios para unirse a un grupo
 const sendGroupInvitationEmail = async (admin, user, nameNotification, notificationId) => {
@@ -67,7 +39,7 @@ const sendAcceptanceConfirmationEmail = async (admin, user, groupName) => {
   const html = `<strong>The acceptance confirmation message is:</strong> <br> ${encryptedMessage.toString('hex')}`;
 
   await sendEmail({
-    from: { name: user.name, lastName: user.lastName, email: user.email },
+    from: user,
     to: admin,
     subject,
     text,
@@ -134,8 +106,7 @@ const sendKeyGroup = async (req, res) => {
 // Procesa la aceptación de la invitación por parte del usuario
 const desecryptKeyGroup = async (req, res) => {
   try {
-    const { notificationId } = req.params;
-    const { userId, isAccept } = req.body;
+    const { notificationId, userId, isAccept } = req.body;
 
     if (!isAccept) {
       await Notification.update(
@@ -147,11 +118,15 @@ const desecryptKeyGroup = async (req, res) => {
 
     const notification = await Notification.findOne({
       where: { id: notificationId, userId: userId },
-      include: [{ model: User, as: 'admin' , attributes: ['publicKey'] }]
+      include: [{ model: User, as: 'admin' , attributes: ['name', 'lastName', 'email', 'publicKey'] }]
     });
 
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    if (notification.accept === "ACEPTADO") {
+      return res.status(400).json({ message: 'User already accepted the invitation' });
     }
 
     const { groupKey, adminSignature, admin } = notification;
