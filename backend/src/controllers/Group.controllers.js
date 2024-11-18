@@ -50,7 +50,8 @@ const sendAcceptanceConfirmationEmail = async (admin, user, groupName) => {
 // Función para enviar la clave del grupo
 const sendKeyGroup = async (req, res) => {
   try {
-    const { adminEmail, usersEmail, nameNotification } = req.body;
+    const { adminEmail } = req.user;
+    const { usersEmail, nameNotification } = req.body;
 
     const admin = await User.findOne({ where: { email: adminEmail } });
     if (!admin) {
@@ -180,7 +181,26 @@ const desecryptKeyGroup = async (req, res) => {
   }
 };
 
+const getGroupsByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const groups = await user.getGroups();
+
+    res.status(200).json(groups);
+  } catch (error) {
+    console.error("Error getting groups by user:", error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   sendKeyGroup,
   desecryptKeyGroup,
+  getGroupsByUser
 };

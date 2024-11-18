@@ -13,7 +13,7 @@ const getMessages = async (req, res) => {
 const getMessagesByUser = async (req, res) => {
     try {
         const { userId } = req.params;
-        const messages = await Message.findAll({ where: { userId } });
+        const messages = await Message.findAll({ where: { receiverId : userId } });
     
         res.status(200).json(messages);
     } catch (error) {

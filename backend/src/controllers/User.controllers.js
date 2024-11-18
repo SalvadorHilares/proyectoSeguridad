@@ -3,6 +3,15 @@ const { sendEmail } = require('../utils/email.service');
 const { User, Group, Message } = require('../db.js');
 const { Op } = require('sequelize');
 
+const getUsers = async (req, res) => {
+    try {
+        const users = await User.findAll({ attributes: { exclude: ['password', 'publicKey', 'privateKey', 'createdAt', 'updatedAt'] } });
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 const register = async (req, res) => {
     try {
         const { name, lastName, email, password } = req.body;
@@ -32,7 +41,7 @@ const register = async (req, res) => {
         // Generate token
         const token = newUser.generateToken();
 
-        res.status(201).json({ token: token });
+        res.status(201).json(token);
     }
     catch (error) {
         res.status(500).json({ message: error.message });
@@ -41,32 +50,32 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
-
-        // Check if the user already exists
-        const user = await User.findOne({ email: email });
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Check if the password is correct
-        const isPasswordCorrect = await user.comparePassword(password);
-
-        if (!isPasswordCorrect) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        // Generate token
-        const token = user.generateToken();
-
-        res.status(200).json({ token: token });
-    }
-    catch (error) {
-        res.status(500).json({ message: error.message });
+      const { email, password } = req.body;
+  
+      // Verificar si el usuario existe
+      const user = await User.findOne({ where: { email } });
+  
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+  
+      // Verificar la contraseña
+      const isPasswordCorrect = await user.comparePassword(password);
+  
+      if (!isPasswordCorrect) {
+        return res.status(400).json({ message: "Credenciales inválidas" });
+      }
+  
+      // Generar token
+      const token = user.generateToken();
+  
+      res.status(200).json(token);
+    } catch (error) {
+      console.error("Error en el login:", error.message);
+      res.status(500).json({ message: "Error interno del servidor" });
     }
 };
-
+  
 const sendEmailToGroup = async (req, res) => {
     try {
         // Extrae los datos del cuerpo de la solicitud
@@ -208,7 +217,8 @@ const receiveEmailFromGroup = async (req, res) => {
     }
 };
 
-module.exports = { 
+module.exports = {
+    getUsers,
     login,
     register,
     sendEmailToGroup,

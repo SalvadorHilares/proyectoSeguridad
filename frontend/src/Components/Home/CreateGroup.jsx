@@ -1,16 +1,30 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { getUsers } from "../../Redux/actions";
+import { Link } from "react-router-dom";
 
 const CreateGroup = () => {
-    
-    const [selectedUsers, setSelectedUsers] = React.useState([]);
+  const dispatch = useDispatch();
+  const users = useSelector((state) => state.usersRegister); // Asegúrate de que el reducer almacene los usuarios
+  const [selectedUsers, setSelectedUsers] = useState([]);
 
-  // Lista de usuarios por defecto
-  const users = [
-    { id: 1, name: 'Dion Carlos', email: 'rodrigo.carlos@utec.edu.pe' },
-    { id: 2, name: 'Mauricio Rodriguez', email: 'mauricio.rodriguez@utec.edu.pe' },
-    { id: 3, name: 'Salvador Hilares', email: 'salvador.hilares@utec.edu.pe' },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Cargar los usuarios al montar el componente
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        await dispatch(getUsers());
+        setLoading(false);
+      } catch (err) {
+        setError("Error al cargar los usuarios");
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [dispatch]);
 
   // Manejar la selección de usuarios
   const handleUserSelect = (userId) => {
@@ -26,14 +40,22 @@ const CreateGroup = () => {
     const selectedEmails = users
       .filter((user) => selectedUsers.includes(user.id))
       .map((user) => user.email);
-    
-    alert(`Enviando correo a: ${selectedEmails.join(', ')}`);
+
+    alert(`Enviando correo a: ${selectedEmails.join(", ")}`);
   };
+
+  if (loading) {
+    return <div className="text-center">Cargando usuarios...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Usuarios</h2>
-      
+
       <div className="w-full max-w-md">
         {/* Lista desplegable de usuarios */}
         <ul className="space-y-2">
@@ -42,10 +64,10 @@ const CreateGroup = () => {
               key={user.id}
               onClick={() => handleUserSelect(user.id)}
               className={`cursor-pointer p-2 border rounded-md ${
-                selectedUsers.includes(user.id) ? 'bg-green-200' : 'bg-white'
+                selectedUsers.includes(user.id) ? "bg-green-200" : "bg-white"
               }`}
             >
-              <span className="font-semibold">{user.name}</span> - {user.email}
+              <span className="font-semibold">{user.name} {user.lastName}</span> - {user.email}
             </li>
           ))}
         </ul>
@@ -55,22 +77,24 @@ const CreateGroup = () => {
           onClick={handleSendEmails}
           disabled={selectedUsers.length === 0}
           className={`w-full mt-4 py-2 text-white rounded-md focus:outline-none ${
-            selectedUsers.length > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+            selectedUsers.length > 0
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "bg-gray-400 cursor-not-allowed"
           }`}
         >
           Enviar Correo
         </button>
       </div>
       <div className="text-center mt-4">
-          <Link
-            to="/home"
-            className="text-sm font-medium text-gray-600 hover:text-gray-800"
-          >
-            &larr; Volver al Home
-          </Link>
-        </div>
+        <Link
+          to="/home"
+          className="text-sm font-medium text-gray-600 hover:text-gray-800"
+        >
+          &larr; Volver al Home
+        </Link>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default CreateGroup
+export default CreateGroup;
