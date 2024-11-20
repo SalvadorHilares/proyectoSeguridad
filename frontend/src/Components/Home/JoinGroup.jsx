@@ -1,17 +1,40 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useParams, Link } from 'react-router-dom';
+import { getNotificationsByUser } from '../../Redux/actions';
 
 const JoinGroup = () => {
-  // Ejemplo de invitaciones a grupos
-  const invitations = [
-    { id: 1, groupName: 'Desarrolladores', users: ['Juan Pérez', 'María López', 'Carlos Sánchez'] },
-    { id: 2, groupName: 'Amigos del Fútbol', users: ['José Ruiz', 'Ana Gómez', 'Luis Torres'] },
-    { id: 3, groupName: 'Familia', users: ['Marta Rivera', 'Pablo García', 'Laura Castillo'] },
-  ];
+  const { notificationId } = useParams(); // Obtén el ID desde la URL si está presente
+  const dispatch = useDispatch();
+  const notifications = useSelector((state) => state.notifications); // Notificaciones desde Redux
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [selectedGroup, setSelectedGroup] = React.useState(null);
+  // Cargar notificaciones al montar el componente
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        await dispatch(getNotificationsByUser());
+        setLoading(false);
+      } catch (err) {
+        setError('Error al cargar las notificaciones');
+        setLoading(false);
+      }
+    };
 
-  // Maneja la selección de una invitación y abre el pop-up
+    fetchNotifications();
+  }, [dispatch]);
+
+  // Abrir automáticamente el pop-up si hay un `notificationId`
+  useEffect(() => {
+    if (notificationId && notifications.length > 0) {
+      const group = notifications.find((n) => n.id === parseInt(notificationId));
+      if (group) setSelectedGroup(group);
+    }
+  }, [notificationId, notifications]);
+
+  // Maneja la selección de una invitación
   const handleInvitationClick = (group) => {
     setSelectedGroup(group);
   };
@@ -23,9 +46,20 @@ const JoinGroup = () => {
 
   // Maneja la aceptación o rechazo de la invitación
   const handleResponse = (response) => {
-    alert(`Has ${response} la invitación para unirte al grupo ${selectedGroup.groupName}`);
+    alert(`Has ${response} la invitación para unirte al grupo ${selectedGroup.name}`);
     closePopup();
+    // Aquí puedes llamar a un action para aceptar/rechazar la invitación
   };
+
+  // Renderizar mientras se cargan las notificaciones
+  if (loading) {
+    return <div className="text-center">Cargando invitaciones...</div>;
+  }
+
+  // Renderizar si ocurre un error al cargar
+  if (error) {
+    return <div className="text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-100 p-6">
@@ -33,13 +67,13 @@ const JoinGroup = () => {
 
       {/* Lista de invitaciones */}
       <ul className="w-full max-w-md space-y-4">
-        {invitations.map((invitation) => (
+        {notifications.map((notification) => (
           <li
-            key={invitation.id}
+            key={notification.id}
             className="p-4 bg-white rounded-lg shadow-lg cursor-pointer hover:bg-blue-100"
-            onClick={() => handleInvitationClick(invitation)}
+            onClick={() => handleInvitationClick(notification)}
           >
-            {invitation.groupName}
+            {notification.name}
           </li>
         ))}
       </ul>
@@ -62,11 +96,11 @@ const JoinGroup = () => {
               ✕
             </button>
 
-            <h3 className="text-xl font-bold text-center mb-4">{selectedGroup.groupName}</h3>
-            
+            <h3 className="text-xl font-bold text-center mb-4">{selectedGroup.name}</h3>
+
             <p className="font-medium text-gray-700 mb-2">Usuarios en el grupo:</p>
             <ul className="list-disc list-inside mb-4">
-              {selectedGroup.users.map((user, index) => (
+              {selectedGroup.users?.map((user, index) => (
                 <li key={index} className="text-gray-600">{user}</li>
               ))}
             </ul>
@@ -89,14 +123,14 @@ const JoinGroup = () => {
           </div>
         </div>
       )}
-    <div className="text-center mt-4">
+      <div className="text-center mt-4">
         <Link
           to="/home"
           className="text-sm font-medium text-gray-600 hover:text-gray-800"
         >
-        &larr; Volver al Inicio
-      </Link>
-    </div>
+          &larr; Volver al Inicio
+        </Link>
+      </div>
     </div>
   );
 };

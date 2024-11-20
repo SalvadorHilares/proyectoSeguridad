@@ -40,6 +40,11 @@ sequelize.models = Object.fromEntries(capsEntries);
 const { Group, User, Notification, Message } = sequelize.models;
 // Aca vendrian las relaciones
 
+// Un grupo puede tener muchas notificaciones y una notificación pertenece a un grupo
+
+Notification.belongsTo(Group)
+Group.hasMany(Notification)
+
 // Un User puede pertenecer a muchos grupos y un grupo puede tener muchos usuarios
 
 User.belongsToMany(Group, { through: "user_group" });

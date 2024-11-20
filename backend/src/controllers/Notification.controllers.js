@@ -1,4 +1,4 @@
-const { Notification } = require('../db.js');
+const { Notification, Group, User } = require('../db.js');
 
 const getNotifications = async (req, res) => {
     try {
@@ -11,12 +11,26 @@ const getNotifications = async (req, res) => {
 };
 
 const getNotificationsByUser = async (req, res) => {
-    const { userId } = req.params;
+    const { id } = req.user;
 
     try {
         const notifications = await Notification.findAll({
-            where: { userId: userId },
+            where: { userId: id },
+            attributes: ['id', 'name', 'accept'], // Atributos de las notificaciones
+            include: [
+                {
+                    model: Group, // Asociación con el modelo de Grupo
+                    attributes: ['id', 'name'], // Atributos del grupo
+                    include: [
+                        {
+                            model: User, // Usuarios asociados al grupo
+                            attributes: ['id', 'name', 'email'], // Atributos del usuario
+                        },
+                    ],
+                },
+            ],
         });
+
         res.status(200).json(notifications);
     } catch (error) {
         console.error("Error getting notifications by user:", error.message);

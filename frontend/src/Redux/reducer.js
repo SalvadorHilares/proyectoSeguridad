@@ -1,7 +1,6 @@
 import { GET_MESSAGES, GET_NOTIFICATIONS, GET_GROUPS, GET_USERS, LOGIN, REGISTER, LOGOUT } from './actions';
 
 const initialState = {
-    token : null,
     usersRegister : [],
     notifications : [],
     groups : [],
@@ -11,9 +10,11 @@ const initialState = {
 const rootReducer = (state = initialState, action) => {
     switch(action.type){
         case LOGIN:
-            return {...state, token : action.payload};
+            localStorage.setItem('token', action.payload);
+            return {...state};
         case REGISTER:
-            return {...state, token : action.payload};
+            localStorage.setItem('token', action.payload);
+            return {...state};
         case GET_MESSAGES:
             return {...state, messages : action.payload};
         case GET_NOTIFICATIONS:
@@ -23,7 +24,8 @@ const rootReducer = (state = initialState, action) => {
         case GET_USERS:
             return {...state, usersRegister : action.payload};
         case LOGOUT:
-            return {...state, user : null};
+            localStorage.removeItem('token');
+            return {...state};
         default:
             return {...state};
     }

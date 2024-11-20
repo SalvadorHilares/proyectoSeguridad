@@ -1,6 +1,7 @@
 import { useDispatch } from "react-redux";
 import { LOGOUT } from "../../Redux/actions";
 import { Link, useNavigate } from "react-router-dom";
+import MyGroups from "./MyGroups";
 
 const Home = () => {
   const dispatch = useDispatch();
@@ -43,6 +44,7 @@ const Home = () => {
       >
         Cerrar Sesión
       </button>
+      <MyGroups />
     </div>
   );
 };

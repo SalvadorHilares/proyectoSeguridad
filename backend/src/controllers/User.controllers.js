@@ -5,7 +5,9 @@ const { Op } = require('sequelize');
 
 const getUsers = async (req, res) => {
     try {
-        const users = await User.findAll({ attributes: { exclude: ['password', 'publicKey', 'privateKey', 'createdAt', 'updatedAt'] } });
+        const { id } = req.user;
+        const users = await User.findAll({ attributes: { exclude: ['password', 'publicKey', 'privateKey', 'createdAt', 'updatedAt'] },
+            where: { id: { [Op.ne]: id } } });  
         res.status(200).json(users);
     } catch (error) {
         res.status(500).json({ message: error.message });

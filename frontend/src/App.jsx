@@ -15,6 +15,7 @@ function App() {
       <Route path="/home" element={<Home />} />
       <Route path="/create-group" element={<CreateGroup />} />
       <Route path="/join-group" element={<JoinGroup />} />
+      <Route path="/join-group/:notificationId" element={<JoinGroup />} />
       <Route path="*" element={<h1>Not Found</h1>} />
     </Routes>
   )

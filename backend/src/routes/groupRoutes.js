@@ -1,10 +1,11 @@
 const { Router } = require('express');
 const router = Router();
+const authMiddleware = require('../utils/auth.middleware');
 
 const { sendKeyGroup, desecryptKeyGroup, getGroupsByUser } = require('../controllers/Group.controllers');
 
-router.post('/sendKeyGroup', sendKeyGroup);
-router.post('/desecryptKeyGroup', desecryptKeyGroup);
-router.get('/getGroupsByUser/:userId', getGroupsByUser);
+router.post('/sendKeyGroup', authMiddleware, sendKeyGroup);
+router.post('/desecryptKeyGroup', authMiddleware, desecryptKeyGroup);
+router.get('/getGroupsByUser', authMiddleware, getGroupsByUser);
 
 module.exports = router;

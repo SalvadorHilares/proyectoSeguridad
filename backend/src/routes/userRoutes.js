@@ -4,7 +4,7 @@ const authMiddleware = require('../utils/auth.middleware');
 
 const { login, register, sendEmailToGroup, receiveEmailFromGroup, getUsers } = require('../controllers/User.controllers');
 
-router.get('/', getUsers);
+router.get('/', authMiddleware, getUsers);
 router.post('/register', register);
 router.post('/login', login);
 router.post('/sendEmailToGroup', authMiddleware, sendEmailToGroup);

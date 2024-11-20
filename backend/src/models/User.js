@@ -50,7 +50,7 @@ module.exports = (sequelize) => {
   // Método de instancia para generar token
   User.prototype.generateToken = function () {
     const payload = { id: this.id, email: this.email }; // Información que quieras incluir en el token
-    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "6h" });
   };
 
   return User;

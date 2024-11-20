@@ -8,7 +8,7 @@ const sendGroupInvitationEmail = async (admin, user, nameNotification, notificat
   const text = `You have been invited to join the group ${nameNotification}. Please accept or decline the invitation.`;
   const html = `
     <p>You have been invited to join the group <strong>${nameNotification}</strong>.</p>
-    <p><a href="http://localhost:3000/group/${notificationId}">Click here to accept or decline the invitation</a></p>
+    <p><a href="http://localhost:5173/join-group/${notificationId}">Click here to accept or decline the invitation</a></p>
   `;
 
   await sendEmail({
@@ -50,25 +50,27 @@ const sendAcceptanceConfirmationEmail = async (admin, user, groupName) => {
 // Función para enviar la clave del grupo
 const sendKeyGroup = async (req, res) => {
   try {
-    const { adminEmail } = req.user;
+    const { email } = req.user;
     const { usersEmail, nameNotification } = req.body;
 
-    const admin = await User.findOne({ where: { email: adminEmail } });
+    const admin = await User.findOne({ where: { email: email } });
     if (!admin) {
       return res.status(404).json({ message: 'Admin user not found' });
     }
 
     const groupKey = crypto.randomBytes(32).toString('hex');
 
-    await Group.create({
+    const group = await Group.create({
       name: nameNotification,
       groupKey: groupKey,
     });
 
+    await admin.addGroups(group);
+
     for (const emailObj of usersEmail) {
-      const user = await User.findOne({ where: { email: emailObj.email } });
+      const user = await User.findOne({ where: { email: emailObj } });
       if (!user) {
-        console.error(`User ${emailObj.email} not found`);
+        console.error(`User ${emailObj} not found`);
         continue;
       }
 
@@ -89,6 +91,7 @@ const sendKeyGroup = async (req, res) => {
       const notification = await Notification.create({
         adminId: admin.id,
         userId: user.id,
+        groupId: group.id,
         name: `Invitación al Grupo ${nameNotification}`,
         groupKey: encryptedGroupKey.toString('hex'),
         adminSignature: adminSignature.toString('hex'),
@@ -107,18 +110,19 @@ const sendKeyGroup = async (req, res) => {
 // Procesa la aceptación de la invitación por parte del usuario
 const desecryptKeyGroup = async (req, res) => {
   try {
-    const { notificationId, userId, isAccept } = req.body;
+    const { id } = req.user;
+    const { notificationId, isAccept } = req.body;
 
     if (!isAccept) {
       await Notification.update(
         { accept: "RECHAZADO" },
-        { where: { id: notificationId, userId: userId } }
+        { where: { id: notificationId, userId: id } }
       );
       return res.status(400).json({ message: 'User did not accept the invitation' });
     }
 
     const notification = await Notification.findOne({
-      where: { id: notificationId, userId: userId },
+      where: { id: notificationId, userId: id },
       include: [{ model: User, as: 'admin' , attributes: ['name', 'lastName', 'email', 'publicKey'] }]
     });
 
@@ -146,7 +150,7 @@ const desecryptKeyGroup = async (req, res) => {
       return res.status(400).json({ message: 'Invalid admin signature' });
     }
 
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -169,7 +173,7 @@ const desecryptKeyGroup = async (req, res) => {
 
     await Notification.update(
       { accept: "ACEPTADO" },
-      { where: { id: notificationId, userId: userId } }
+      { where: { id: notificationId, userId: id } }
     );
 
     await sendAcceptanceConfirmationEmail(admin, user, group.name);
@@ -183,14 +187,16 @@ const desecryptKeyGroup = async (req, res) => {
 
 const getGroupsByUser = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { id } = req.user;
 
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const groups = await user.getGroups();
+    const groups = await user.getGroups({
+      attributes: ['id', 'name']
+    });
 
     res.status(200).json(groups);
   } catch (error) {

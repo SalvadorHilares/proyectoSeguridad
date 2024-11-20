@@ -20,10 +20,14 @@ export const getMessagesByUser = (userId) => {
     };
 };
 
-export const getNotificationsByUser = (userId) => {
+export const getNotificationsByUser = () => {
     return async dispatch => {
         try {
-            const response = await axios.get(`http://localhost:8000/notification/${userId}`);
+            const response = await axios.get(`http://localhost:8000/notification/users`,{
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
             const data = response.data;
             dispatch({ type: GET_NOTIFICATIONS, payload: data });
         } catch (error) {
@@ -32,10 +36,14 @@ export const getNotificationsByUser = (userId) => {
     };
 };
 
-export const getGroupsByUser = (userId) => {
+export const getGroupsByUser = () => {
     return async dispatch => {
         try {
-            const response = await axios.get(`http://localhost:8000/group/getGroupsByUser/${userId}`);
+            const response = await axios.get('http://localhost:8000/group/getGroupsByUser', {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
             const data = response.data;
             dispatch({ type: GET_GROUPS, payload: data });
         } catch (error) {
@@ -47,7 +55,11 @@ export const getGroupsByUser = (userId) => {
 export const getUsers = () => {
     return async dispatch => {
         try {
-            const response = await axios.get('http://localhost:8000/user/');
+            const response = await axios.get('http://localhost:8000/user/', {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
             const data = response.data;
             dispatch({ type: GET_USERS, payload: data });
         } catch (error) {
@@ -86,7 +98,14 @@ export const register = (user) => {
 export const sendKeyGroup = (body) => {
     return async () => {
         try {
-            const response = await axios.post('http://localhost:8000/group/sendKeyGroup', body);
+            const response = await axios.post(
+                'http://localhost:8000/group/sendKeyGroup', 
+                body,
+            {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
             const data = response.data;
             return { success: true, data };
         } catch (error) {
