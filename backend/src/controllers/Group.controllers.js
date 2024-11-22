@@ -195,7 +195,8 @@ const getGroupsByUser = async (req, res) => {
     }
 
     const groups = await user.getGroups({
-      attributes: ['id', 'name']
+      attributes: ['id', 'name'],
+      joinTableAttributes: []
     });
 
     res.status(200).json(groups);

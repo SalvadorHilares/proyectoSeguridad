@@ -9,22 +9,18 @@ const CreateGroup = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [groupName, setGroupName] = useState(""); // Estado para el nombre del grupo
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false); // Estado para el envío
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
 
   // Cargar los usuarios al montar el componente
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        await dispatch(getUsers());
-        setLoading(false);
-      } catch (err) {
-        setError("Error al cargar los usuarios");
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
+    try {
+      dispatch(getUsers());
+      setLoading(false);
+    } catch (error) {
+      setError("Error al cargar los usuarios.");
+      setLoading(false);
+    }
   }, [dispatch]);
 
   // Manejar la selección de usuarios
@@ -61,7 +57,7 @@ const CreateGroup = () => {
     }
   };
 
-  if (loading) {
+  if (loading && users.length === 0) {
     return <div className="text-center">Cargando usuarios...</div>;
   }
 

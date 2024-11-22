@@ -81,11 +81,12 @@ const login = async (req, res) => {
 const sendEmailToGroup = async (req, res) => {
     try {
         // Extrae los datos del cuerpo de la solicitud
-        const { userId, groupId, message } = req.body;
+        const { id } = req.user;
+        const { groupId, message } = req.body;
 
         // Busca el usuario y el grupo al que pertenece
         const user = await User.findOne({
-            where: { id: userId },
+            where: { id: id },
             attributes: ['name', 'lastName', 'email', 'privateKey'],
             include: [{
                 model: Group,
@@ -120,7 +121,7 @@ const sendEmailToGroup = async (req, res) => {
                 where: { id: groupId }, // Asegúrate de filtrar por el grupo específico
                 through: { attributes: [] } // Si usas una tabla intermedia para la asociación, excluye los atributos adicionales
             }],
-            where: { id: { [Op.ne]: userId } } // Excluye al usuario que envía el mensaje
+            where: { id: { [Op.ne]: id } } // Excluye al usuario que envía el mensaje
         });
 
         // Enviar el mensaje cifrado a todos los usuarios del grupo
@@ -135,7 +136,7 @@ const sendEmailToGroup = async (req, res) => {
             await Message.create({
                 text: encryptedMessage,
                 userSignature: userSignature.toString('hex'),
-                senderId: userId,
+                senderId: id,
                 receiverId: groupUser.id
             });
 
@@ -158,11 +159,12 @@ const sendEmailToGroup = async (req, res) => {
 
 const receiveEmailFromGroup = async (req, res) => {
     try {
-        const { messageId, receiverId, groupId } = req.body;
+        const { id } = req.user;
+        const { messageId, groupId } = req.body;
 
         // Buscar al usuario y la clave del grupo
         const user = await User.findOne({
-            where: { id: receiverId },
+            where: { id: id },
             include: [{
                 model: Group,
                 as: 'groups',

@@ -1,42 +1,50 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useParams, Link } from 'react-router-dom';
-import { getNotificationsByUser } from '../../Redux/actions';
+import { getNotificationsByUser, getUsersByNotification, desecryptKeyGroup } from '../../Redux/actions';
 
 const JoinGroup = () => {
-  const { notificationId } = useParams(); // Obtén el ID desde la URL si está presente
+  const { notificationId } = useParams();
   const dispatch = useDispatch();
-  const notifications = useSelector((state) => state.notifications); // Notificaciones desde Redux
+  const notifications = useSelector((state) => state.notifications);
+  const [notification, setNotification] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(notificationId ? true : false);
   const [error, setError] = useState(null);
 
   // Cargar notificaciones al montar el componente
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        await dispatch(getNotificationsByUser());
-        setLoading(false);
-      } catch (err) {
-        setError('Error al cargar las notificaciones');
-        setLoading(false);
-      }
-    };
-
-    fetchNotifications();
+    try {
+      dispatch(getNotificationsByUser());
+      setLoading(false);
+    } catch (error) {
+      setError('Error al cargar las notificaciones.');
+      setLoading(false);
+    }
   }, [dispatch]);
 
   // Abrir automáticamente el pop-up si hay un `notificationId`
   useEffect(() => {
-    if (notificationId && notifications.length > 0) {
-      const group = notifications.find((n) => n.id === parseInt(notificationId));
-      if (group) setSelectedGroup(group);
-    }
-  }, [notificationId, notifications]);
+    const fetchGroup = async () => {
+      if (notificationId && notifications.length > 0) {
+        try {
+          const group = await dispatch(getUsersByNotification(notificationId));
+          setNotification(notifications.find((n) => n.id === notificationId));
+          if (group) setSelectedGroup(group);
+        } catch (error) {
+          console.error('Error fetching group:', error);
+        }
+      }
+    };
+  
+    fetchGroup();
+  }, [notificationId, notifications, dispatch]);
 
   // Maneja la selección de una invitación
-  const handleInvitationClick = (group) => {
-    setSelectedGroup(group);
+  const handleInvitationClick = async (notification) => {
+    const users = await dispatch(getUsersByNotification(notification.id));
+    setNotification(notification);
+    setSelectedGroup(users);
   };
 
   // Cierra el pop-up
@@ -45,14 +53,23 @@ const JoinGroup = () => {
   };
 
   // Maneja la aceptación o rechazo de la invitación
-  const handleResponse = (response) => {
-    alert(`Has ${response} la invitación para unirte al grupo ${selectedGroup.name}`);
-    closePopup();
-    // Aquí puedes llamar a un action para aceptar/rechazar la invitación
+  const handleResponse = async (response) => {
+    const resp = await dispatch(desecryptKeyGroup( {
+      'notificationId' : notification.id,
+      'isAccept' : response === 'aceptado' ? true : false
+    }));
+    if (resp.success) {
+      dispatch(getNotificationsByUser());
+      alert(`Has ${response} la invitación para unirte al grupo ${selectedGroup[0].name}`);
+      closePopup();
+    }else{
+      alert(`Error al ${response} la invitación. Por favor
+      inténtalo de nuevo más tarde.`);
+    }
   };
 
   // Renderizar mientras se cargan las notificaciones
-  if (loading) {
+  if (loading && notifications.length === 0) {
     return <div className="text-center">Cargando invitaciones...</div>;
   }
 
@@ -67,16 +84,24 @@ const JoinGroup = () => {
 
       {/* Lista de invitaciones */}
       <ul className="w-full max-w-md space-y-4">
-        {notifications.map((notification) => (
-          <li
-            key={notification.id}
-            className="p-4 bg-white rounded-lg shadow-lg cursor-pointer hover:bg-blue-100"
-            onClick={() => handleInvitationClick(notification)}
-          >
-            {notification.name}
-          </li>
-        ))}
+        {notifications.filter((notification) => notification?.accept === "ESPERA").length > 0 ? (
+          notifications
+            .filter((notification) => notification?.accept === "ESPERA")
+            .map((notification) => (
+              <li
+                key={notification.id}
+                className="p-4 bg-white rounded-lg shadow-lg cursor-pointer hover:bg-blue-100"
+                onClick={() => handleInvitationClick(notification)}
+              >
+                {notification.name}
+              </li>
+            ))
+        ) : (
+          <li className="text-center text-gray-600">No hay invitaciones pendientes</li>
+        )}
       </ul>
+
+
 
       {/* Pop-up de detalles de la invitación */}
       {selectedGroup && (
@@ -100,8 +125,20 @@ const JoinGroup = () => {
 
             <p className="font-medium text-gray-700 mb-2">Usuarios en el grupo:</p>
             <ul className="list-disc list-inside mb-4">
-              {selectedGroup.users?.map((user, index) => (
-                <li key={index} className="text-gray-600">{user}</li>
+              {selectedGroup.map((user) => (
+                <li key={user.user.id} className="text-gray-600 flex items-center">
+                <span className="mr-2">{user.user.name}</span>
+                <span className="mr-2">{user.user.lastName}</span>
+                {user.accept === "ACEPTADO" && (
+                  <span className="text-green-500 text-lg">✔ ACEPTADO</span> // Check verde
+                )}
+                {user.accept === "ESPERA" && (
+                  <span className="text-yellow-500 text-lg">⏳ ESPERA</span> // Reloj amarillo (espera)
+                )}
+                {user.accept === "RECHAZADO" && (
+                  <span className="text-red-500 text-lg">✖ RECHAZADO</span> // X roja
+                )}
+              </li>
               ))}
             </ul>
 

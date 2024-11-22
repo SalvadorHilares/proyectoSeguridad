@@ -1,17 +1,23 @@
+import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { LOGOUT } from "../../Redux/actions";
 import { Link, useNavigate } from "react-router-dom";
 import MyGroups from "./MyGroups";
+import { getGroupsByUser } from "../../Redux/actions"; // Asegúrate de importar la acción para obtener los grupos
 
 const Home = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // Manejar logout
   const handleLogout = () => {
-    // Despachar acción de logout y redirigir al usuario al login
     dispatch({ type: LOGOUT });
-    navigate("/login"); // Asegúrate de que "/login" sea tu ruta de inicio de sesión
+    navigate("/login");
   };
+
+  useEffect(() => {
+    dispatch(getGroupsByUser());
+  }, [dispatch]);
 
   return (
     <div className="text-center mt-8 space-y-4">
@@ -44,7 +50,10 @@ const Home = () => {
       >
         Cerrar Sesión
       </button>
-      <MyGroups />
+
+      {/* Mostrar los grupos */}
+
+        <MyGroups />
     </div>
   );
 };

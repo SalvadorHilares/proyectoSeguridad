@@ -1,8 +1,16 @@
-import { GET_MESSAGES, GET_NOTIFICATIONS, GET_GROUPS, GET_USERS, LOGIN, REGISTER, LOGOUT } from './actions';
+import { GET_MESSAGES, 
+        GET_NOTIFICATIONS, 
+        GET_GROUPS, 
+        GET_USERS,
+        GET_USERS_BY_GROUP,
+        LOGIN, 
+        REGISTER, 
+        LOGOUT } from './actions';
 
 const initialState = {
     usersRegister : [],
     notifications : [],
+    selectedGroup : [],
     groups : [],
     messages : [],
 }
@@ -10,8 +18,6 @@ const initialState = {
 const rootReducer = (state = initialState, action) => {
     switch(action.type){
         case LOGIN:
-            localStorage.setItem('token', action.payload);
-            return {...state};
         case REGISTER:
             localStorage.setItem('token', action.payload);
             return {...state};
@@ -23,8 +29,11 @@ const rootReducer = (state = initialState, action) => {
             return {...state, groups : action.payload};
         case GET_USERS:
             return {...state, usersRegister : action.payload};
+        case GET_USERS_BY_GROUP:
+            return {...state, selectedGroup : action.payload};
         case LOGOUT:
             localStorage.removeItem('token');
+            state = initialState;
             return {...state};
         default:
             return {...state};
