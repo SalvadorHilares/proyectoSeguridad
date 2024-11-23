@@ -1,19 +1,12 @@
 const { Message } = require("../db.js");
 
-const getMessages = async (req, res) => {
-    try {
-        const messages = await Message.findAll();
-    
-        res.status(200).json(messages);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
 const getMessagesByUser = async (req, res) => {
     try {
-        const { userId } = req.params;
-        const messages = await Message.findAll({ where: { receiverId : userId } });
+        const { id } = req.user;
+        const messages = await Message.findAll({ where: 
+            { receiverId : id },
+            attributes : ['id', 'state']
+         });
     
         res.status(200).json(messages);
     } catch (error) {
@@ -22,6 +15,5 @@ const getMessagesByUser = async (req, res) => {
 };
 
 module.exports = {
-    getMessages,
     getMessagesByUser
 };

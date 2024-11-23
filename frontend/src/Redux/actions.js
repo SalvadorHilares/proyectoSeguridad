@@ -15,9 +15,13 @@ const API_BASE_URL = 'http://localhost:8000';
 
 // Action creators with Thunk (para peticiones asíncronas)
 
-export const getMessagesByUser = (userId) => async (dispatch) => {
+export const getMessagesByUser = () => async (dispatch) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/message/${userId}`);
+    const response = await axios.get(`${API_BASE_URL}/message/`,{
+      headers : {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
     dispatch({ type: GET_MESSAGES, payload: response.data });
   } catch (error) {
     console.error('Error fetching messages:', error.response?.data?.message || error.message);
@@ -141,6 +145,36 @@ export const desecryptKeyGroup = (body) => async () => {
     catch (error) {
     console.error('Error desecrypting key group:', error.response?.data?.message || error.message);
     }
+};
+
+export const sendEmailToGroup = (body) => async () => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/user/sendEmailToGroup`, body,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    )
+    return {success : true, data : response.data}
+  } catch (error) {
+    console.log("Error to send email to group: ", error.message);
+  }
+};
+
+export const receiveEmailFromGroup = (body) => async () => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/user/receiveEmailFromGroup`, body,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    )
+    return {success : true, data : response.data}
+  } catch (error) {
+    
+  }
 };
 
 // Logout action

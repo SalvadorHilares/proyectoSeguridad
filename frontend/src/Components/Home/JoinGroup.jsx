@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useParams, Link } from 'react-router-dom';
-import { getNotificationsByUser, getUsersByNotification, desecryptKeyGroup } from '../../Redux/actions';
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams, Link } from "react-router-dom";
+import {
+  getNotificationsByUser,
+  getUsersByNotification,
+  desecryptKeyGroup,
+} from "../../Redux/actions";
 
 const JoinGroup = () => {
   const { notificationId } = useParams();
@@ -9,21 +13,19 @@ const JoinGroup = () => {
   const notifications = useSelector((state) => state.notifications);
   const [notification, setNotification] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
-  const [loading, setLoading] = useState(notificationId ? true : false);
+  const [loading, setLoading] = useState(false); // Barra de carga global
+  const [responseLoading, setResponseLoading] = useState(false); // Barra de carga específica para "Aceptar/Rechazar"
   const [error, setError] = useState(null);
+  const [notificationStatus, setNotificationStatus] = useState(null); // Notificación de éxito/error
 
-  // Cargar notificaciones al montar el componente
   useEffect(() => {
     try {
       dispatch(getNotificationsByUser());
-      setLoading(false);
     } catch (error) {
-      setError('Error al cargar las notificaciones.');
-      setLoading(false);
+      setError("Error al cargar las notificaciones.");
     }
   }, [dispatch]);
 
-  // Abrir automáticamente el pop-up si hay un `notificationId`
   useEffect(() => {
     const fetchGroup = async () => {
       if (notificationId && notifications.length > 0) {
@@ -32,48 +34,60 @@ const JoinGroup = () => {
           setNotification(notifications.find((n) => n.id === notificationId));
           if (group) setSelectedGroup(group);
         } catch (error) {
-          console.error('Error fetching group:', error);
+          console.error("Error fetching group:", error);
         }
       }
     };
-  
     fetchGroup();
   }, [notificationId, notifications, dispatch]);
 
-  // Maneja la selección de una invitación
   const handleInvitationClick = async (notification) => {
-    const users = await dispatch(getUsersByNotification(notification.id));
-    setNotification(notification);
-    setSelectedGroup(users);
-  };
-
-  // Cierra el pop-up
-  const closePopup = () => {
-    setSelectedGroup(null);
-  };
-
-  // Maneja la aceptación o rechazo de la invitación
-  const handleResponse = async (response) => {
-    const resp = await dispatch(desecryptKeyGroup( {
-      'notificationId' : notification.id,
-      'isAccept' : response === 'aceptado' ? true : false
-    }));
-    if (resp.success) {
-      dispatch(getNotificationsByUser());
-      alert(`Has ${response} la invitación para unirte al grupo ${selectedGroup[0].name}`);
-      closePopup();
-    }else{
-      alert(`Error al ${response} la invitación. Por favor
-      inténtalo de nuevo más tarde.`);
+    setLoading(true);
+    try {
+      const users = await dispatch(getUsersByNotification(notification.id));
+      setNotification(notification);
+      setSelectedGroup(users);
+    } catch (error) {
+      console.error("Error al seleccionar la invitación:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Renderizar mientras se cargan las notificaciones
+  const closePopup = () => {
+    setSelectedGroup(null);
+    setNotificationStatus(null); // Ocultar cualquier notificación activa
+  };
+
+  const handleResponse = async (response) => {
+    setResponseLoading(true);
+    try {
+      const resp = await dispatch(
+        desecryptKeyGroup({
+          notificationId: notification.id,
+          isAccept: response === "aceptado",
+        })
+      );
+
+      if (resp.success) {
+        setNotificationStatus("success");
+        dispatch(getNotificationsByUser());
+      } else {
+        setNotificationStatus("error");
+      }
+    } catch (error) {
+      setNotificationStatus("error");
+      console.error("Error al procesar la respuesta:", error);
+    } finally {
+      setResponseLoading(false);
+      setTimeout(() => setNotificationStatus(null), 3000); // Ocultar la notificación tras 3 segundos
+    }
+  };
+
   if (loading && notifications.length === 0) {
     return <div className="text-center">Cargando invitaciones...</div>;
   }
 
-  // Renderizar si ocurre un error al cargar
   if (error) {
     return <div className="text-center text-red-500">{error}</div>;
   }
@@ -101,19 +115,16 @@ const JoinGroup = () => {
         )}
       </ul>
 
-
-
       {/* Pop-up de detalles de la invitación */}
       {selectedGroup && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10"
-          onClick={closePopup} // Cierra el pop-up si se hace clic fuera
+          onClick={closePopup}
         >
           <div
             className="relative bg-white w-full max-w-md p-6 rounded-lg shadow-lg transform transition-all duration-300 scale-95"
-            onClick={(e) => e.stopPropagation()} // Evita cerrar el pop-up al hacer clic dentro
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Botón de cerrar */}
             <button
               onClick={closePopup}
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 focus:outline-none"
@@ -126,33 +137,32 @@ const JoinGroup = () => {
             <p className="font-medium text-gray-700 mb-2">Usuarios en el grupo:</p>
             <ul className="list-disc list-inside mb-4">
               {selectedGroup.map((user) => (
-                <li key={user.user.id} className="text-gray-600 flex items-center">
-                <span className="mr-2">{user.user.name}</span>
-                <span className="mr-2">{user.user.lastName}</span>
-                {user.accept === "ACEPTADO" && (
-                  <span className="text-green-500 text-lg">✔ ACEPTADO</span> // Check verde
-                )}
-                {user.accept === "ESPERA" && (
-                  <span className="text-yellow-500 text-lg">⏳ ESPERA</span> // Reloj amarillo (espera)
-                )}
-                {user.accept === "RECHAZADO" && (
-                  <span className="text-red-500 text-lg">✖ RECHAZADO</span> // X roja
-                )}
-              </li>
+                <li key={user.user.id} className="text-gray-600">
+                  {user.user.name} {user.user.lastName}
+                </li>
               ))}
             </ul>
 
             {/* Botones de Aceptar y Rechazar */}
             <div className="flex justify-center space-x-4">
               <button
-                onClick={() => handleResponse('aceptado')}
-                className="px-4 py-2 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transform transition duration-150 hover:scale-105"
+                onClick={() => handleResponse("aceptado")}
+                className="px-4 py-2 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition transform hover:scale-105"
+                disabled={responseLoading}
               >
-                Aceptar
+                {responseLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-4 h-4 border-2 border-white border-dotted rounded-full animate-spin mr-2"></div>
+                    Procesando...
+                  </div>
+                ) : (
+                  "Aceptar"
+                )}
               </button>
               <button
-                onClick={() => handleResponse('rechazado')}
-                className="px-4 py-2 bg-red-500 text-white font-bold rounded-md hover:bg-red-600 transform transition duration-150 hover:scale-105"
+                onClick={() => handleResponse("rechazado")}
+                className="px-4 py-2 bg-red-500 text-white font-bold rounded-md hover:bg-red-600 transition transform hover:scale-105"
+                disabled={responseLoading}
               >
                 Rechazar
               </button>
@@ -160,11 +170,22 @@ const JoinGroup = () => {
           </div>
         </div>
       )}
-      <div className="text-center mt-4">
-        <Link
-          to="/home"
-          className="text-sm font-medium text-gray-600 hover:text-gray-800"
+
+      {/* Notificación de éxito/error */}
+      {notificationStatus && (
+        <div
+          className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg transition transform ${
+            notificationStatus === "success"
+              ? "bg-green-500 text-white animate-bounce"
+              : "bg-red-500 text-white animate-bounce"
+          }`}
         >
+          {notificationStatus === "success" ? "Acción realizada con éxito" : "Error al procesar la acción"}
+        </div>
+      )}
+
+      <div className="text-center mt-4">
+        <Link to="/home" className="text-sm font-medium text-gray-600 hover:text-gray-800">
           &larr; Volver al Inicio
         </Link>
       </div>

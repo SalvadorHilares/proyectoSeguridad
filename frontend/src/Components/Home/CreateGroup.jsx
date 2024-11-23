@@ -5,14 +5,15 @@ import { Link } from "react-router-dom";
 
 const CreateGroup = () => {
   const dispatch = useDispatch();
-  const users = useSelector((state) => state.usersRegister); // Asegúrate de que el reducer almacene los usuarios
+  const users = useSelector((state) => state.usersRegister);
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [groupName, setGroupName] = useState(""); // Estado para el nombre del grupo
+  const [groupName, setGroupName] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+  const [notificationStatus, setNotificationStatus] = useState(null); // Notificación de éxito o error
 
-  // Cargar los usuarios al montar el componente
+  // Cargar usuarios al montar el componente
   useEffect(() => {
     try {
       dispatch(getUsers());
@@ -23,7 +24,6 @@ const CreateGroup = () => {
     }
   }, [dispatch]);
 
-  // Manejar la selección de usuarios
   const handleUserSelect = (userId) => {
     if (selectedUsers.includes(userId)) {
       setSelectedUsers(selectedUsers.filter((id) => id !== userId));
@@ -32,13 +32,12 @@ const CreateGroup = () => {
     }
   };
 
-  // Manejar el envío de correos
   const handleSendEmails = async () => {
     const selectedEmails = users
       .filter((user) => selectedUsers.includes(user.id))
       .map((user) => user.email);
 
-    setSending(true); // Activar el estado de "enviando"
+    setSending(true);
     try {
       const resp = await dispatch(
         sendKeyGroup({
@@ -46,14 +45,17 @@ const CreateGroup = () => {
           nameNotification: groupName,
         })
       );
+
       if (!resp.success) {
         throw new Error("Error al enviar los correos.");
       }
-      alert("Correos enviados correctamente.");
+
+      setNotificationStatus("success"); // Notificación de éxito
     } catch (err) {
-      alert("Error al enviar los correos.");
+      setNotificationStatus("error"); // Notificación de error
     } finally {
-      setSending(false); // Desactivar el estado de "enviando"
+      setSending(false);
+      setTimeout(() => setNotificationStatus(null), 3000); // Ocultar notificación después de 3 segundos
     }
   };
 
@@ -104,7 +106,7 @@ const CreateGroup = () => {
           ))}
         </ul>
 
-        {/* Botón de enviar */}
+        {/* Botón de enviar correos */}
         <button
           onClick={handleSendEmails}
           disabled={selectedUsers.length === 0 || !groupName || sending}
@@ -114,16 +116,35 @@ const CreateGroup = () => {
               : "bg-gray-400 cursor-not-allowed"
           }`}
         >
-          {sending ? "Enviando correos..." : "Enviar Correos"}
+          {sending ? (
+            <div className="flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-white border-dotted rounded-full animate-spin mr-2"></div>
+              Enviando correos...
+            </div>
+          ) : (
+            "Enviar Correos"
+          )}
         </button>
       </div>
 
+      {/* Notificación de éxito/error */}
+      {notificationStatus && (
+        <div
+          className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg transition transform ${
+            notificationStatus === "success"
+              ? "bg-green-500 text-white animate-bounce"
+              : "bg-red-500 text-white animate-bounce"
+          }`}
+        >
+          {notificationStatus === "success"
+            ? "Correos enviados correctamente"
+            : "Error al enviar los correos"}
+        </div>
+      )}
+
       {/* Regresar al Home */}
       <div className="text-center mt-4">
-        <Link
-          to="/home"
-          className="text-sm font-medium text-gray-600 hover:text-gray-800"
-        >
+        <Link to="/home" className="text-sm font-medium text-gray-600 hover:text-gray-800">
           &larr; Volver al Home
         </Link>
       </div>
