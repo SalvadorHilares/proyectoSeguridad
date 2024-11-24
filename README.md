@@ -38,13 +38,6 @@ Antes de iniciar, asegúrate de tener instalado lo siguiente:
    git clone https://github.com/tu_usuario/proyectoSeguridad.git
    cd proyectoSeguridad
 
-src/
-├── components/       # Componentes reutilizables
-├── pages/            # Vistas principales de la aplicación
-├── Redux/            # Configuración de Redux y acciones
-├── styles/           # Estilos globales y configuraciones de Tailwind
-└── App.js            # Componente principal
-
 Si tienes alguna pregunta o sugerencia, no dudes en contactarnos:
 
 Correo Electrónico: salvador.hilares@utec.edu.pe
