@@ -81,6 +81,7 @@ const JoinGroup = () => {
     } finally {
       setResponseLoading(false);
       setTimeout(() => setNotificationStatus(null), 3000); // Ocultar la notificación tras 3 segundos
+      closePopup();
     }
   };
 
@@ -137,9 +138,19 @@ const JoinGroup = () => {
             <p className="font-medium text-gray-700 mb-2">Usuarios en el grupo:</p>
             <ul className="list-disc list-inside mb-4">
               {selectedGroup.map((user) => (
-                <li key={user.user.id} className="text-gray-600">
-                  {user.user.name} {user.user.lastName}
-                </li>
+                <li key={user.user.id} className="text-gray-600 flex items-center">
+                <span className="mr-2">{user.user.name}</span>
+                <span className="mr-2">{user.user.lastName}</span>
+                {user.accept === "ACEPTADO" && (
+                  <span className="text-green-500 text-lg">✔ ACEPTADO</span> // Check verde
+                )}
+                {user.accept === "ESPERA" && (
+                  <span className="text-yellow-500 text-lg">⏳ ESPERA</span> // Reloj amarillo (espera)
+                )}
+                {user.accept === "RECHAZADO" && (
+                  <span className="text-red-500 text-lg">✖ RECHAZADO</span> // X roja
+                )}
+              </li>
               ))}
             </ul>
 

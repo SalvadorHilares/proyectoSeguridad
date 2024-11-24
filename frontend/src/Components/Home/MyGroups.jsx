@@ -1,62 +1,68 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
-import { sendEmailToGroup, getMessagesByUser } from "../../Redux/actions";
+import { sendEmailToGroup, getMessagesByUser, showMessagesToGroup } from "../../Redux/actions";
 
 const MyGroups = () => {
   const dispatch = useDispatch();
   const groups = useSelector((state) => state.groups);
   const messageByGroup = useSelector((state) => state.messages);
-  const [showPopup, setShowPopup] = useState(false); // Pop-up para enviar mensajes
-  const [showMessages, setShowMessages] = useState(false); // Mostrar correos recibidos
-  const [selectedGroup, setSelectedGroup] = useState(null); // Grupo seleccionado
-  const [message, setMessage] = useState(""); // Mensaje escrito por el usuario
-  const [isLoading, setIsLoading] = useState(false); // Barra de carga
-  const [notification, setNotification] = useState(null); // Notificación de éxito/error
+  const [showPopup, setShowPopup] = useState(false);
+  const [showMessages, setShowMessages] = useState(false);
+  const [highlightedMessage, setHighlightedMessage] = useState(null); // Animar mensaje seleccionado
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState(null);
+  const [messageDetails, setMessageDetails] = useState({}); // Detalles del mensaje seleccionado
 
-  // Cargar los mensajes al montar el componente
   useEffect(() => {
     dispatch(getMessagesByUser());
   }, [dispatch]);
 
-  // Filtrar los mensajes "NO VISTOS" para cada grupo
-  const getUnreadMessagesCount = (groupId) => {
-    return messageByGroup.filter(
-      (msg) => msg.groupId === groupId && msg.state === "NO VISTO"
-    ).length;
-  };
+  const getUnreadMessagesCount = (groupId) =>
+    messageByGroup.filter((msg) => msg.groupId === groupId && msg.state === "NO VISTO").length;
 
-  // Manejar la vista de correos recibidos
   const handleViewReceivedEmails = (groupId) => {
     setSelectedGroup(groupId);
-    setShowMessages(true); // Mostrar los correos recibidos
+    setShowMessages(true);
   };
 
-  // Cerrar la vista de correos
   const closeMessagesView = () => {
     setShowMessages(false);
     setSelectedGroup(null);
+    setHighlightedMessage(null);
+    setMessageDetails({});
   };
 
   const handleSendEmail = async () => {
     setIsLoading(true);
     try {
-      const response = await dispatch(
-        sendEmailToGroup({
-          groupId: selectedGroup,
-          message: message,
-        })
-      );
-      if (response.success) {
-        setNotification("success");
-        setShowPopup(false);
-      } else {
-        setNotification("error");
-      }
+      const response = await dispatch(sendEmailToGroup({ groupId: selectedGroup, message }));
+      setNotification(response.success ? "success" : "error");
+      setShowPopup(false);
     } catch (error) {
       setNotification("error");
     } finally {
       setIsLoading(false);
       setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleShowMessage = async (messageId, groupId) => {
+    try {
+      const response = await dispatch(showMessagesToGroup({ messageId, groupId }));
+      if (response.success) {
+        setHighlightedMessage(messageId);
+        setMessageDetails((prev) => ({
+          ...prev,
+          [messageId]: response.data.message,
+        }));
+        setTimeout(() => setHighlightedMessage(null), 2000); // Resaltar el mensaje por 2 segundos
+      } else {
+        alert("Error al mostrar mensaje");
+      }
+    } catch (error) {
+      console.error("Error al mostrar mensaje:", error.message);
     }
   };
 
@@ -69,13 +75,11 @@ const MyGroups = () => {
           {groups.map((group) => (
             <li
               key={group.id}
-              className="flex justify-between items-center p-4 bg-white rounded-lg shadow hover:bg-gray-50 transition duration-200"
+              className="flex justify-between items-center p-4 bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200"
             >
-              {/* Nombre del grupo */}
               <span className="text-lg font-medium text-gray-700">{group.name}</span>
 
               <div className="flex space-x-2">
-                {/* Botón para enviar mensajes */}
                 <button
                   onClick={() => {
                     setSelectedGroup(group.id);
@@ -86,18 +90,17 @@ const MyGroups = () => {
                   Enviar correo
                 </button>
 
-                {/* Botón para correos recibidos */}
                 <button
                   onClick={() => handleViewReceivedEmails(group.id)}
                   className="flex items-center px-4 py-2 bg-gray-500 text-white font-bold rounded-md hover:bg-gray-600 transition duration-150"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5 mr-2"
                     fill="none"
                     viewBox="0 0 24 24"
-                    strokeWidth={2}
                     stroke="currentColor"
-                    className="w-5 h-5 mr-2"
+                    strokeWidth={2}
                   >
                     <path
                       strokeLinecap="round"
@@ -106,7 +109,6 @@ const MyGroups = () => {
                     />
                   </svg>
                   Correos recibidos
-                  {/* Mostrar cantidad de mensajes NO VISTOS */}
                   <span className="ml-2 bg-red-500 text-white text-sm font-bold px-2 py-1 rounded-full">
                     {getUnreadMessagesCount(group.id)}
                   </span>
@@ -119,25 +121,16 @@ const MyGroups = () => {
         <p className="text-gray-600">No perteneces a ningún grupo.</p>
       )}
 
-      {/* Pop-up para enviar mensajes */}
       {showPopup && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10"
-          onClick={() => setShowPopup(false)}
-        >
-          <div
-            className="bg-white w-full max-w-md p-6 rounded-lg shadow-lg relative"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+          <div className="bg-white w-full max-w-md p-6 rounded-lg shadow-lg relative transform transition-transform scale-95 animate-fade-in">
             <button
               onClick={() => setShowPopup(false)}
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
             >
               ✕
             </button>
-
             <h2 className="text-xl font-bold mb-4 text-center">Escribe tu mensaje</h2>
-
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -146,15 +139,10 @@ const MyGroups = () => {
               rows={5}
               disabled={isLoading}
             ></textarea>
-
             <button
               onClick={handleSendEmail}
               disabled={isLoading}
-              className={`mt-4 w-full ${
-                isLoading ? "bg-gray-400" : "bg-blue-500"
-              } text-white font-bold py-2 rounded-md ${
-                isLoading ? "cursor-not-allowed" : "hover:bg-blue-600"
-              }`}
+              className={`mt-4 w-full ${isLoading ? "bg-gray-400" : "bg-blue-500"} text-white font-bold py-2 rounded-md`}
             >
               {isLoading ? "Enviando..." : "Enviar mensaje"}
             </button>
@@ -162,10 +150,9 @@ const MyGroups = () => {
         </div>
       )}
 
-      {/* Vista de correos recibidos */}
       {showMessages && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-10">
-          <div className="bg-white p-6 rounded-lg w-full max-w-2xl">
+          <div className="bg-white p-6 rounded-lg w-full max-w-2xl relative transform transition-transform animate-slide-up">
             <button
               onClick={closeMessagesView}
               className="absolute top-4 right-6 text-gray-600 hover:text-gray-800"
@@ -177,10 +164,25 @@ const MyGroups = () => {
               {messageByGroup
                 .filter((msg) => msg.groupId === selectedGroup)
                 .map((msg) => (
-                  <li key={msg.id} className="p-4 bg-gray-100 rounded-lg shadow">
+                  <li
+                    key={msg.id}
+                    className={`p-4 bg-gray-100 rounded-lg shadow ${
+                      highlightedMessage === msg.id ? "ring-2 ring-blue-500 animate-pulse" : ""
+                    }`}
+                  >
                     <span className="font-bold">De: {msg.senderName}</span>
-                    <p>{msg.content}</p>
-                    <span className="text-sm text-gray-500">{msg.state}</span>
+                    <span className="ml-2 text-sm text-gray-500">{msg.state}</span>
+                    <button
+                      onClick={() => handleShowMessage(msg.id, msg.groupId)}
+                      className="ml-4 bg-blue-500 text-white px-2 py-1 rounded-md"
+                    >
+                      Mostrar mensaje
+                    </button>
+                    {messageDetails[msg.id] && (
+                      <div className="mt-2 p-2 bg-gray-200 rounded-md">
+                        <p className="text-gray-700">{messageDetails[msg.id]}</p>
+                      </div>
+                    )}
                   </li>
                 ))}
             </ul>
@@ -188,12 +190,11 @@ const MyGroups = () => {
         </div>
       )}
 
-      {/* Notificación de éxito/error */}
       {notification && (
         <div
           className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
             notification === "success" ? "bg-green-500" : "bg-red-500"
-          } text-white`}
+          } text-white animate-slide-in`}
         >
           {notification === "success" ? "Mensaje enviado" : "Mensaje no enviado"}
         </div>

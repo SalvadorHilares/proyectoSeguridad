@@ -159,6 +159,7 @@ export const sendEmailToGroup = (body) => async () => {
     return {success : true, data : response.data}
   } catch (error) {
     console.log("Error to send email to group: ", error.message);
+    return {success : false, data : error.message}
   }
 };
 
@@ -173,9 +174,25 @@ export const receiveEmailFromGroup = (body) => async () => {
     )
     return {success : true, data : response.data}
   } catch (error) {
-    
+    console.log("Error to receive email from group: ", error.message);
   }
 };
+
+export const showMessagesToGroup = (body) => async () => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/user/receiveEmailFromGroup`, body,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    )
+    return {success : true, data : response.data}
+  }
+  catch (error) {
+    console.log("Error to show messages to group: ", error.message);
+  }
+}
 
 // Logout action
 export const logout = () => {

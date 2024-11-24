@@ -68,6 +68,9 @@ User.hasMany(Message, {foreignKey: 'senderId'});
 Message.belongsTo(User, {foreignKey: 'receiverId', as: 'receiver'});
 User.hasMany(Message, {foreignKey: 'receiverId'});
 
+Message.belongsTo(Group);
+Group.hasMany(Message);
+
 module.exports = {
   ...sequelize.models, // para poder importar los modelos así: const { Product, User } = require('./db.js');
   conn: sequelize, // para importart la conexión { conn } = require('./db.js');

@@ -137,7 +137,8 @@ const sendEmailToGroup = async (req, res) => {
                 text: encryptedMessage,
                 userSignature: userSignature.toString('hex'),
                 senderId: id,
-                receiverId: groupUser.id
+                receiverId: groupUser.id,
+                groupId: groupId,
             });
 
             // Enviar correo al usuario
@@ -175,7 +176,7 @@ const receiveEmailFromGroup = async (req, res) => {
 
         // Buscar el mensaje y la clave pública del remitente
         const message = await Message.findOne({
-            where: { id: messageId, state: 'NO VISTO' },
+            where: { id: messageId },
             include: [{ model: User, as: 'sender', attributes: ['publicKey'] }]
         });
 
