@@ -63,6 +63,7 @@ const sendKeyGroup = async (req, res) => {
     const group = await Group.create({
       name: nameNotification,
       groupKey: groupKey,
+      adminId: admin.id
     });
 
     await admin.addGroups(group);
@@ -195,11 +196,16 @@ const getGroupsByUser = async (req, res) => {
     }
 
     const groups = await user.getGroups({
-      attributes: ['id', 'name'],
+      attributes: ['id', 'name', 'adminId'],
       joinTableAttributes: []
     });
 
-    res.status(200).json(groups);
+    const groupsWithAdminFlag = groups.map((group) => ({
+      ...group.dataValues,
+      isAdmin: group.adminId === id,
+    }));
+
+    res.status(200).json(groupsWithAdminFlag);
   } catch (error) {
     console.error("Error getting groups by user:", error.message);
     res.status(500).json({ message: 'Internal server error' });

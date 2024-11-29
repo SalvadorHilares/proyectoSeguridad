@@ -71,6 +71,11 @@ User.hasMany(Message, {foreignKey: 'receiverId'});
 Message.belongsTo(Group);
 Group.hasMany(Message);
 
+// Un grupo tiene un admin y un admin puede tener muchos grupos
+
+Group.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
+User.hasMany(Group, { foreignKey: 'adminId' });
+
 module.exports = {
   ...sequelize.models, // para poder importar los modelos así: const { Product, User } = require('./db.js');
   conn: sequelize, // para importart la conexión { conn } = require('./db.js');

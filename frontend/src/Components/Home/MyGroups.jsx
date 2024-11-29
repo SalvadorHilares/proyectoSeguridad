@@ -1,13 +1,15 @@
 import { useSelector, useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
-import { sendEmailToGroup, getMessagesByUser, showMessagesToGroup } from "../../Redux/actions";
+import { sendEmailToGroup, getMessagesByUser, showMessagesToGroup, getUsersByGroup } from "../../Redux/actions";
 
 const MyGroups = () => {
   const dispatch = useDispatch();
   const groups = useSelector((state) => state.groups);
   const messageByGroup = useSelector((state) => state.messages);
+  const [usersGroup, setUsersGroup] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
+  const [showUsersByGroup, setShowUsersByGroup] = useState(false);
   const [highlightedMessage, setHighlightedMessage] = useState(null); // Animar mensaje seleccionado
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [message, setMessage] = useState("");
@@ -66,6 +68,19 @@ const MyGroups = () => {
     }
   };
 
+  const handleGetUsersByGroup = async () => {
+    try {
+      const response = await dispatch(getUsersByGroup(selectedGroup));
+      if (response.success) {
+        setUsersGroup(response.data);
+      } else {
+        alert("Error al obtener usuarios del grupo");
+      }
+    } catch (error) {
+      console.error("Error al obtener usuarios del grupo:", error.message);
+    }
+  };
+
   return (
     <div className="bg-gray-100 min-h-screen p-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Tus Grupos</h1>
@@ -79,7 +94,19 @@ const MyGroups = () => {
             >
               <span className="text-lg font-medium text-gray-700">{group.name}</span>
 
-              <div className="flex space-x-2">
+              <div className="flex space-x-3">
+                {group.isAdmin && (
+                  <button
+                    onClick={() => {
+                      setShowUsersByGroup(true);
+                      setSelectedGroup(group.id);
+                      handleGetUsersByGroup();
+                    }}
+                    className="px-4 py-2 bg-green-500 text-white font-bold rounded-md hover:bg-green-600 transition duration-150">
+                    Administrar
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     setSelectedGroup(group.id);
@@ -146,6 +173,37 @@ const MyGroups = () => {
             >
               {isLoading ? "Enviando..." : "Enviar mensaje"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {showUsersByGroup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+          <div className="bg-white w-full max-w-md p-6 rounded-lg shadow-lg relative transform transition-transform scale-95 animate-fade-in">
+            <button
+              onClick={() => setShowUsersByGroup(false)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+            >
+              ✕
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-center">Usuarios del grupo</h2>
+            <ul className="list-disc list-inside mb-4">
+              {usersGroup.map((user) => (
+                <li key={user.user.id} className="text-gray-600 flex items-center">
+                <span className="mr-2">{user.user.name}</span>
+                <span className="mr-2">{user.user.lastName}</span>
+                {user.accept === "ACEPTADO" && (
+                  <span className="text-green-500 text-lg">✔ ACEPTADO</span> // Check verde
+                )}
+                {user.accept === "ESPERA" && (
+                  <span className="text-yellow-500 text-lg">⏳ ESPERA</span> // Reloj amarillo (espera)
+                )}
+                {user.accept === "RECHAZADO" && (
+                  <span className="text-red-500 text-lg">✖ RECHAZADO</span> // X roja
+                )}
+              </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}

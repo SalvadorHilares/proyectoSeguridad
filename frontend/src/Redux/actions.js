@@ -88,6 +88,19 @@ export const getUsersByNotification = (notificationId) => async (dispatch) => {
   }
 };
 
+export const getUsersByGroup = (groupId) => async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/notification/groups/${groupId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error fetching users by group:', error.response?.data?.message || error.message);
+  }
+};
+
 // Login action (asynchronous)
 export const login = (user) => async (dispatch) => {
   try {

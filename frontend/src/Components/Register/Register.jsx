@@ -19,6 +19,7 @@ const Register = () => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -61,8 +62,11 @@ const Register = () => {
       };
 
       await dispatch(register(user));
-      alert("Registro exitoso");
-      navigate("/home");
+      setShowSuccessMessage(true); // Mostrar mensaje de éxito
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        navigate("/home"); // Navegar después de un pequeño retraso
+      }, 2000);
     } catch (error) {
       setErrors({ server: "Ocurrió un error durante el registro. Inténtalo de nuevo." });
       console.error("Error during registration:", error);
@@ -75,6 +79,15 @@ const Register = () => {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold text-center text-gray-800">Registro</h2>
+
+        {/* Mensaje de éxito */}
+        {showSuccessMessage && (
+          <div
+            className="p-4 mb-4 text-green-700 bg-green-100 border border-green-400 rounded-lg transition-transform duration-500 transform scale-100 animate-bounce"
+          >
+            ¡Registro exitoso! Redirigiendo al inicio...
+          </div>
+        )}
 
         {errors.server && (
           <div className="p-4 text-red-700 bg-red-100 border border-red-400 rounded">

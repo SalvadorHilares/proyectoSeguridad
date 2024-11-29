@@ -58,8 +58,34 @@ const getUsersByNotification = async (req, res) => {
     }
 }
 
+const getUsersByGroup = async (req, res) => {
+    const { id } = req.user;
+    const { groupId } = req.params;
+  
+    try {
+      const users = await Notification.findAll({
+        where: {
+          userId: { [Op.ne]: id },
+          groupId: groupId,
+        },
+        include: {
+          model: User,
+          attributes: ['id', 'name', 'lastName'],
+        },
+        attributes: ['id', 'accept'],
+      });
+  
+      res.status(200).json(users);
+    } catch (error) {
+      console.error("Error getting users by group:", error.message);
+      res.status(500).json({ message: "Error getting users by group" });
+    }
+  };
+  
+
 module.exports = {
     getNotifications,
     getNotificationsByUser,
-    getUsersByNotification
+    getUsersByNotification,
+    getUsersByGroup
 };
