@@ -47,8 +47,13 @@ Group.hasMany(Notification)
 
 // Un User puede pertenecer a muchos grupos y un grupo puede tener muchos usuarios
 
-User.belongsToMany(Group, { through: "user_group" });
-Group.belongsToMany(User, { through: "user_group" });
+// Relación many-to-many entre User y Group
+User.belongsToMany(Group, { through: 'user_group', as: 'groups', foreignKey: 'userId' });
+Group.belongsToMany(User, { through: 'user_group', as: 'users', foreignKey: 'groupId' });
+
+// Relación de admin en un grupo
+Group.belongsTo(User, { as: 'admin', foreignKey: 'adminId' });
+User.hasMany(Group, { foreignKey: 'adminId', as: 'administeredGroups' });
 
 // Una notificación pertenece a un usuario y un usuario puede tener muchas notificaciones
 
@@ -70,11 +75,6 @@ User.hasMany(Message, {foreignKey: 'receiverId'});
 
 Message.belongsTo(Group);
 Group.hasMany(Message);
-
-// Un grupo tiene un admin y un admin puede tener muchos grupos
-
-Group.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
-User.hasMany(Group, { foreignKey: 'adminId' });
 
 module.exports = {
   ...sequelize.models, // para poder importar los modelos así: const { Product, User } = require('./db.js');

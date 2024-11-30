@@ -73,6 +73,7 @@ const MyGroups = () => {
       const response = await dispatch(getUsersByGroup(selectedGroup));
       if (response.success) {
         setUsersGroup(response.data);
+        setShowUsersByGroup(true);
       } else {
         alert("Error al obtener usuarios del grupo");
       }
@@ -98,7 +99,6 @@ const MyGroups = () => {
                 {group.isAdmin && (
                   <button
                     onClick={() => {
-                      setShowUsersByGroup(true);
                       setSelectedGroup(group.id);
                       handleGetUsersByGroup();
                     }}
